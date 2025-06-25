@@ -2,7 +2,7 @@ import unittest
 import json
 from datetime import datetime
 
-from ag_ui.encoder.encoder import EventEncoder, AGUI_MEDIA_TYPE # Protocol will be imported in test methods where needed
+from ag_ui.encoder.encoder import EventEncoder, AGUI_MEDIA_TYPE, Protocol
 from ag_ui.core.events import BaseEvent, EventType, TextMessageContentEvent, ToolCallStartEvent
 
 
@@ -13,10 +13,15 @@ class TestEventEncoder(unittest.TestCase):
         """Test initializing an EventEncoder"""
         encoder = EventEncoder()
         self.assertIsInstance(encoder, EventEncoder)
-
-        # Test with accept parameter
-        encoder_with_accept = EventEncoder(accept=AGUI_MEDIA_TYPE)
-        self.assertIsInstance(encoder_with_accept, EventEncoder)
+        
+        # Test with different protocols
+        encoder_sse = EventEncoder(protocol=Protocol.SSE)
+        self.assertIsInstance(encoder_sse, EventEncoder)
+        self.assertEqual(encoder_sse.protocol, Protocol.SSE)
+        
+        encoder_ws = EventEncoder(protocol=Protocol.WEBSOCKET)
+        self.assertIsInstance(encoder_ws, EventEncoder)
+        self.assertEqual(encoder_ws.protocol, Protocol.WEBSOCKET)
 
     def test_encode_method_sse_default(self): # Renamed for clarity
         """Test the encode method which calls encode_sse by default"""
@@ -38,7 +43,6 @@ class TestEventEncoder(unittest.TestCase):
 
     def test_encode_sse_method_explicit(self): # Renamed for clarity
         """Test the _encode_sse method via encode() when SSE protocol is explicit"""
-        from ag_ui.encoder.encoder import Protocol
         event = TextMessageContentEvent(
             type=EventType.TEXT_MESSAGE_CONTENT,
             message_id="msg_123",
@@ -64,7 +68,6 @@ class TestEventEncoder(unittest.TestCase):
 
     def test_encode_with_different_event_types_sse(self): # Suffix _sse
         """Test encoding different types of events using SSE protocol"""
-        from ag_ui.encoder.encoder import Protocol
         encoder = EventEncoder(protocol=Protocol.SSE)
         
         base_event = BaseEvent(type=EventType.RAW, timestamp=1648214400000)
@@ -91,7 +94,6 @@ class TestEventEncoder(unittest.TestCase):
         
     def test_null_value_exclusion_sse(self): # Suffix _sse
         """Test that fields with None values are excluded from JSON output for SSE"""
-        from ag_ui.encoder.encoder import Protocol
         encoder = EventEncoder(protocol=Protocol.SSE)
 
         event = BaseEvent(
@@ -159,20 +161,17 @@ class TestEventEncoder(unittest.TestCase):
 
     def test_websocket_encoder_initialization(self):
         """Test initializing an EventEncoder for WebSocket"""
-        from ag_ui.encoder.encoder import Protocol
         encoder = EventEncoder(protocol=Protocol.WEBSOCKET)
         self.assertIsInstance(encoder, EventEncoder)
         self.assertEqual(encoder.protocol, Protocol.WEBSOCKET)
 
     def test_websocket_get_content_type(self):
         """Test get_content_type for WebSocket protocol"""
-        from ag_ui.encoder.encoder import Protocol
         encoder = EventEncoder(protocol=Protocol.WEBSOCKET)
         self.assertEqual(encoder.get_content_type(), "application/json")
 
     def test_encode_websocket_method(self):
         """Test the encode() method for WebSocket protocol"""
-        from ag_ui.encoder.encoder import Protocol
 
         event = TextMessageContentEvent(
             type=EventType.TEXT_MESSAGE_CONTENT,
@@ -194,7 +193,6 @@ class TestEventEncoder(unittest.TestCase):
 
     def test_websocket_encode_with_optional_fields_null(self):
         """Test WebSocket encoding with optional fields set to None"""
-        from ag_ui.encoder.encoder import Protocol
         encoder = EventEncoder(protocol=Protocol.WEBSOCKET)
 
         event_with_optional_none = ToolCallStartEvent(
@@ -214,7 +212,6 @@ class TestEventEncoder(unittest.TestCase):
 
     def test_default_protocol_is_sse(self):
         """Test that the default protocol for EventEncoder is SSE"""
-        from ag_ui.encoder.encoder import Protocol
         encoder = EventEncoder()
         self.assertEqual(encoder.protocol, Protocol.SSE)
         self.assertEqual(encoder.get_content_type(), "text/event-stream")
@@ -223,6 +220,25 @@ class TestEventEncoder(unittest.TestCase):
         encoded = encoder.encode(event)
         self.assertTrue(encoded.startswith("data: "))
         self.assertTrue(encoded.endswith("\n\n"))
+
+    def test_unsupported_protocol_error(self):
+        """Test that unsupported protocols raise ValueError"""
+        
+        encoder = EventEncoder(protocol=Protocol.SSE)
+        
+        class InvalidProtocol:
+            pass
+        
+        encoder.protocol = InvalidProtocol()
+        
+        with self.assertRaises(ValueError) as context:
+            encoder.get_content_type()
+        self.assertIn("Unsupported protocol", str(context.exception))
+        
+        event = BaseEvent(type=EventType.RAW)
+        with self.assertRaises(ValueError) as context:
+            encoder.encode(event)
+        self.assertIn("Unsupported protocol", str(context.exception))
 
 if __name__ == '__main__':
     unittest.main()
