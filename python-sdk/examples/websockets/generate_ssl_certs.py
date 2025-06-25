@@ -11,6 +11,7 @@ WARNING: Self-signed certificates should NEVER be used in production environment
 import subprocess
 import sys
 import os
+import shlex
 from pathlib import Path
 
 def generate_ssl_certificates():
@@ -25,6 +26,7 @@ def generate_ssl_certificates():
         return True
     
     # Generate self-signed certificate
+    # Using hardcoded, safe values to prevent command injection
     cmd = [
         "openssl", "req", "-x509", "-newkey", "rsa:4096",
         "-keyout", key_file, "-out", cert_file,
@@ -34,9 +36,10 @@ def generate_ssl_certificates():
     
     try:
         print("Generating self-signed SSL certificates...")
-        print(f"Command: {' '.join(cmd)}")
+        print(f"Command: {' '.join(shlex.quote(arg) for arg in cmd)}")
         
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        # Use shell=False and pass list directly for security
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, shell=False)
         
         print(f"✓ SSL certificates generated successfully:")
         print(f"  Certificate: {cert_file}")

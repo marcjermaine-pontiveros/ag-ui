@@ -5,12 +5,17 @@ import uuid
 import logging
 import ssl
 import os
+import copy
 from pathlib import Path
 from datetime import datetime
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("ag_ui_demo")
+
+def current_timestamp_ms():
+    """Helper function to get current timestamp in milliseconds."""
+    return int(datetime.now().timestamp() * 1000)
 
 # Assuming the ag_ui package is installable or in PYTHONPATH
 try:
@@ -92,11 +97,16 @@ def create_ssl_context():
 def get_websocket_uri(secure=True):
     """
     Get the appropriate WebSocket URI based on security preference.
+    
+    SECURITY WARNING: Only use insecure WebSocket (ws://) for local development!
+    Production environments should ALWAYS use secure WebSocket (wss://).
     """
     if secure:
         return f"wss://{HOST}:{SECURE_PORT}"
     else:
-        logger.warning("Using insecure WebSocket connection for local development only!")
+        logger.warning("⚠️  SECURITY WARNING: Using insecure WebSocket connection (ws://)!")
+        logger.warning("⚠️  This should ONLY be used for local development!")
+        logger.warning("⚠️  Production environments must use secure WebSocket (wss://)!")
         return f"ws://{HOST}:{PORT}"
 
 def create_sample_messages():
@@ -477,7 +487,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
     state_changes = create_progressive_state_changes()
     
     # Track current state for demonstration
-    current_state = sample_state.copy()
+    current_state = copy.deepcopy(sample_state)
 
     try:
         # 1. RUN_STARTED - Start of the interaction
@@ -486,7 +496,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
             type=EventType.RUN_STARTED, 
             thread_id=thread_id, 
             run_id=run_id,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(run_started_event))
         logger.info(f"Sent: {run_started_event.type}")
@@ -497,7 +507,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         step_started_event = StepStartedEvent(
             type=EventType.STEP_STARTED,
             step_name="weather_query_processing",
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(step_started_event))
         logger.info(f"Sent: {step_started_event.type} - {step_started_event.step_name}")
@@ -508,7 +518,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_snapshot_event = StateSnapshotEvent(
             type=EventType.STATE_SNAPSHOT,
             snapshot=current_state,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_snapshot_event))
         logger.info(f"Sent: {state_snapshot_event.type} - Initial state with current_step: {current_state['context']['current_step']}")
@@ -519,7 +529,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_delta_event_1 = StateDeltaEvent(
             type=EventType.STATE_DELTA,
             delta=state_changes[0],  # Initial setup changes
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event_1))
         logger.info(f"Sent: {state_delta_event_1.type} - Transitioning to 'user_query_received'")
@@ -534,7 +544,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         messages_snapshot_event = MessagesSnapshotEvent(
             type=EventType.MESSAGES_SNAPSHOT,
             messages=sample_messages,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(messages_snapshot_event))
         logger.info(f"Sent: {messages_snapshot_event.type} with {len(sample_messages)} messages")
@@ -545,7 +555,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_delta_event_2 = StateDeltaEvent(
             type=EventType.STATE_DELTA,
             delta=state_changes[1],  # Thinking phase changes
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event_2))
         logger.info(f"Sent: {state_delta_event_2.type} - Transitioning to 'analyzing_request'")
@@ -558,7 +568,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         thinking_start_event = ThinkingStartEvent(
             type=EventType.THINKING_START,
             title="Analyzing weather request",
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(thinking_start_event))
         logger.info(f"Sent: {thinking_start_event.type}")
@@ -568,7 +578,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING THINKING_TEXT_MESSAGE_START EVENT ===")
         thinking_text_start_event = ThinkingTextMessageStartEvent(
             type=EventType.THINKING_TEXT_MESSAGE_START,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(thinking_text_start_event))
         logger.info(f"Sent: {thinking_text_start_event.type}")
@@ -586,7 +596,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
             thinking_content_event = ThinkingTextMessageContentEvent(
                 type=EventType.THINKING_TEXT_MESSAGE_CONTENT,
                 delta=part,
-                timestamp=int(datetime.now().timestamp() * 1000)
+                timestamp=current_timestamp_ms()
             )
             await websocket.send(encoder.encode(thinking_content_event))
             logger.info(f"Sent: {thinking_content_event.type} - Content: '{part[:30]}...'")
@@ -596,7 +606,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING THINKING_TEXT_MESSAGE_END EVENT ===")
         thinking_text_end_event = ThinkingTextMessageEndEvent(
             type=EventType.THINKING_TEXT_MESSAGE_END,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(thinking_text_end_event))
         logger.info(f"Sent: {thinking_text_end_event.type}")
@@ -606,7 +616,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING THINKING_END EVENT ===")
         thinking_end_event = ThinkingEndEvent(
             type=EventType.THINKING_END,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(thinking_end_event))
         logger.info(f"Sent: {thinking_end_event.type}")
@@ -617,7 +627,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_delta_event_3 = StateDeltaEvent(
             type=EventType.STATE_DELTA,
             delta=state_changes[2],  # Tool preparation changes
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event_3))
         logger.info(f"Sent: {state_delta_event_3.type} - Transitioning to 'preparing_tool_call'")
@@ -631,7 +641,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_delta_event_4 = StateDeltaEvent(
             type=EventType.STATE_DELTA,
             delta=state_changes[3],  # Tool execution changes
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event_4))
         logger.info(f"Sent: {state_delta_event_4.type} - Transitioning to 'executing_tool'")
@@ -647,7 +657,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
             tool_call_id=tool_call_id,
             tool_call_name="get_weather",
             parent_message_id=message_id,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(tool_call_start_event))
         logger.info(f"Sent: {tool_call_start_event.type} - Tool: {tool_call_start_event.tool_call_name}")
@@ -665,7 +675,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
                 type=EventType.TOOL_CALL_ARGS,
                 tool_call_id=tool_call_id,
                 delta=args_part,
-                timestamp=int(datetime.now().timestamp() * 1000)
+                timestamp=current_timestamp_ms()
             )
             await websocket.send(encoder.encode(tool_call_args_event))
             logger.info(f"Sent: {tool_call_args_event.type} - Args: '{args_part}'")
@@ -676,7 +686,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         tool_call_end_event = ToolCallEndEvent(
             type=EventType.TOOL_CALL_END,
             tool_call_id=tool_call_id,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(tool_call_end_event))
         logger.info(f"Sent: {tool_call_end_event.type}")
@@ -687,7 +697,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_delta_event_5 = StateDeltaEvent(
             type=EventType.STATE_DELTA,
             delta=state_changes[4],  # Tool completion changes
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event_5))
         logger.info(f"Sent: {state_delta_event_5.type} - Tool completed, caching result")
@@ -696,7 +706,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         apply_json_patch(current_state, state_changes[4])
         log_state_summary(current_state, "after tool completion")
         await asyncio.sleep(0.1)
-        timestamp=int(datetime.now().timestamp() * 1000)
+        timestamp=current_timestamp_ms()
         await websocket.send(encoder.encode(tool_call_end_event))
         logger.info(f"Sent: {tool_call_end_event.type}")
         await asyncio.sleep(0.1)
@@ -710,7 +720,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
                 {"op": "add", "path": "/context/last_tool_call", "value": "get_weather"},
                 {"op": "replace", "path": "/session_data/interaction_count", "value": 2}
             ],
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event))
         logger.info(f"Sent: {state_delta_event.type} with {len(state_delta_event.delta)} operations")
@@ -721,7 +731,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_delta_event_6 = StateDeltaEvent(
             type=EventType.STATE_DELTA,
             delta=state_changes[5],  # Response generation changes
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event_6))
         logger.info(f"Sent: {state_delta_event_6.type} - Transitioning to 'generating_response'")
@@ -735,7 +745,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
             type=EventType.TEXT_MESSAGE_START, 
             message_id=message_id, 
             role="assistant",
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(text_message_start_event))
         logger.info(f"Sent: {text_message_start_event.type} - Message ID: {message_id}")
@@ -755,7 +765,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
                 type=EventType.TEXT_MESSAGE_CONTENT,
                 message_id=message_id,
                 delta=content_part,
-                timestamp=int(datetime.now().timestamp() * 1000)
+                timestamp=current_timestamp_ms()
             )
             await websocket.send(encoder.encode(text_message_content_event))
             logger.info(f"Sent: {text_message_content_event.type} - Content: '{content_part[:30]}...'")
@@ -766,7 +776,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         text_message_end_event = TextMessageEndEvent(
             type=EventType.TEXT_MESSAGE_END, 
             message_id=message_id,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(text_message_end_event))
         logger.info(f"Sent: {text_message_end_event.type} - Message ID: {message_id}")
@@ -777,7 +787,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         state_delta_event_7 = StateDeltaEvent(
             type=EventType.STATE_DELTA,
             delta=state_changes[6],  # Completion and cleanup changes
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_delta_event_7))
         logger.info(f"Sent: {state_delta_event_7.type} - Transitioning to 'completed'")
@@ -798,7 +808,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
                 "api_version": "v2.1"
             },
             source="weather_service",
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(raw_event))
         logger.info(f"Sent: {raw_event.type} from source: {raw_event.source}")
@@ -816,7 +826,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
                 "satisfaction_score": 0.95,
                 "location": "New York"
             },
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(custom_event))
         logger.info(f"Sent: {custom_event.type} - Name: {custom_event.name}")
@@ -827,7 +837,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         step_finished_event = StepFinishedEvent(
             type=EventType.STEP_FINISHED,
             step_name="weather_query_processing",
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(step_finished_event))
         logger.info(f"Sent: {step_finished_event.type} - {step_finished_event.step_name}")
@@ -839,7 +849,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
             type=EventType.RUN_FINISHED, 
             thread_id=thread_id, 
             run_id=run_id,
-            timestamp=int(datetime.now().timestamp() * 1000)
+            timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(run_finished_event))
         logger.info(f"Sent: {run_finished_event.type}")
@@ -870,8 +880,12 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info(f"Demonstrated 21 different event types with all their parameters")
         logger.info(f"Applied {len([item for sublist in state_changes for item in sublist])} JSON Patch operations across 7 state transitions")
 
-    except websockets.exceptions.ConnectionClosed:
-        logger.info(f"WebSocket connection for {websocket.remote_address} was closed during demo.")
+    except websockets.exceptions.ConnectionClosedOK:
+        logger.info(f"WebSocket connection for {websocket.remote_address} was closed gracefully during demo.")
+    except websockets.exceptions.ConnectionClosedError as e:
+        logger.warning(f"WebSocket connection for {websocket.remote_address} was closed with error during demo: {e}")
+    except websockets.exceptions.ConnectionClosed as e:
+        logger.info(f"WebSocket connection for {websocket.remote_address} was closed during demo: {e}")
     except Exception as e:
         logger.error(f"Error in comprehensive server handler: {e}", exc_info=True)
         
@@ -881,7 +895,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
                 type=EventType.RUN_ERROR,
                 message=str(e),
                 code="DEMO_ERROR",
-                timestamp=int(datetime.now().timestamp() * 1000)
+                timestamp=current_timestamp_ms()
             )
             await websocket.send(encoder.encode(error_event))
             logger.info(f"Sent error event: {error_event.type}")
@@ -1594,7 +1608,8 @@ async def main():
             print("  comprehensive_demo  - Run COMPREHENSIVE demo covering ALL events")
             print("")
             print("Options:")
-            print("  --insecure          - Use insecure WebSocket (ws://) for local development")
+            print("  --insecure          - Use insecure WebSocket (ws://) for LOCAL DEVELOPMENT ONLY")
+            print("                        ⚠️  WARNING: Do NOT use --insecure in production!")
             print("                        By default, uses secure WebSocket (wss://) if SSL certificates are available")
     else:
         print(f"Usage: python {script_name} [server|comprehensive_server|client|enhanced_client|run_demo|comprehensive_demo] [--insecure]")
@@ -1608,7 +1623,8 @@ async def main():
         print("  comprehensive_demo  - Run COMPREHENSIVE demo covering ALL events")
         print("")
         print("Options:")
-        print("  --insecure          - Use insecure WebSocket (ws://) for local development")
+        print("  --insecure          - Use insecure WebSocket (ws://) for LOCAL DEVELOPMENT ONLY")
+        print("                        ⚠️  WARNING: Do NOT use --insecure in production!")
         print("                        By default, uses secure WebSocket (wss://) if SSL certificates are available")
         print("")
         print("To generate SSL certificates for testing:")
