@@ -85,7 +85,7 @@ class TestEventEncoder(unittest.TestCase):
         tool_event = ToolCallStartEvent(
             type=EventType.TOOL_CALL_START,
             tool_call_id="tool_789",
-            tool_name="get_weather",
+            tool_call_name="get_weather",
             timestamp=1648214400000
         )
         encoded_tool = encoder.encode(tool_event)

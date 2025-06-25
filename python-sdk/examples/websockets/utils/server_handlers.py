@@ -65,7 +65,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING STATE_SNAPSHOT EVENT ===")
         state_snapshot_event = StateSnapshotEvent(
             type=EventType.STATE_SNAPSHOT,
-            state=current_state,
+            snapshot=current_state,
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(state_snapshot_event))
@@ -98,7 +98,6 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING THINKING_TEXT_MESSAGE_START EVENT ===")
         thinking_text_start_event = ThinkingTextMessageStartEvent(
             type=EventType.THINKING_TEXT_MESSAGE_START,
-            message_id=thinking_message_id,
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(thinking_text_start_event))
@@ -116,7 +115,6 @@ async def comprehensive_ag_ui_server_handler(websocket):
             logger.info(f"=== SENDING THINKING_TEXT_MESSAGE_CONTENT EVENT {i+1}/3 ===")
             thinking_content_event = ThinkingTextMessageContentEvent(
                 type=EventType.THINKING_TEXT_MESSAGE_CONTENT,
-                message_id=thinking_message_id,
                 delta=content_part,
                 timestamp=current_timestamp_ms()
             )
@@ -128,7 +126,6 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING THINKING_TEXT_MESSAGE_END EVENT ===")
         thinking_text_end_event = ThinkingTextMessageEndEvent(
             type=EventType.THINKING_TEXT_MESSAGE_END,
-            message_id=thinking_message_id,
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(thinking_text_end_event))
@@ -150,6 +147,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         text_start_event = TextMessageStartEvent(
             type=EventType.TEXT_MESSAGE_START,
             message_id=message_id,
+            role="assistant",
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(text_start_event))
@@ -179,7 +177,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         tool_call_start_event = ToolCallStartEvent(
             type=EventType.TOOL_CALL_START,
             tool_call_id=tool_call_id,
-            tool_name="get_weather",
+            tool_call_name="get_weather",
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(tool_call_start_event))
@@ -194,7 +192,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
             tool_args_event = ToolCallArgsEvent(
                 type=EventType.TOOL_CALL_ARGS,
                 tool_call_id=tool_call_id,
-                args_delta=args_part,
+                delta=args_part,
                 timestamp=current_timestamp_ms()
             )
             await websocket.send(encoder.encode(tool_args_event))
@@ -263,7 +261,7 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING RAW EVENT ===")
         raw_event = RawEvent(
             type=EventType.RAW,
-            data={"system": "weather_service", "status": "completed", "response_time_ms": 245},
+            event={"system": "weather_service", "status": "completed", "response_time_ms": 245},
             source="weather_api",
             timestamp=current_timestamp_ms()
         )
@@ -275,8 +273,8 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING CUSTOM EVENT ===")
         custom_event = CustomEvent(
             type=EventType.CUSTOM,
-            event_type="weather_analysis_complete",
-            data={
+            name="weather_analysis_complete",
+            value={
                 "analysis": {
                     "location": "San Francisco, CA",
                     "weather_quality": "good",
@@ -308,6 +306,8 @@ async def comprehensive_ag_ui_server_handler(websocket):
         logger.info("=== SENDING RUN_FINISHED EVENT ===")
         run_finished_event = RunFinishedEvent(
             type=EventType.RUN_FINISHED,
+            thread_id=thread_id,
+            run_id=run_id,
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(run_finished_event))
@@ -383,6 +383,7 @@ async def ag_ui_server_handler(websocket):
         text_start_event = TextMessageStartEvent(
             type=EventType.TEXT_MESSAGE_START,
             message_id=message_id,
+            role="assistant",
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(text_start_event))
@@ -415,6 +416,8 @@ async def ag_ui_server_handler(websocket):
         logger.info("Sending RUN_FINISHED event...")
         run_finished_event = RunFinishedEvent(
             type=EventType.RUN_FINISHED,
+            thread_id=thread_id,
+            run_id=run_id,
             timestamp=current_timestamp_ms()
         )
         await websocket.send(encoder.encode(run_finished_event))
