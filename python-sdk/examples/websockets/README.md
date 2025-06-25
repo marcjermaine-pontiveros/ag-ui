@@ -6,6 +6,61 @@ This directory contains WebSocket example scripts demonstrating how to use the A
 
 The `websocket_demo.py` script demonstrates secure WebSocket communication using the AG-UI protocol with comprehensive coverage of ALL event types and parameters.
 
+## Event Encoder Architecture
+
+The AG-UI Python SDK uses a clean, maintainable encoder architecture with dedicated classes for different communication protocols:
+
+### SSE (Server-Sent Events) Encoding
+```python
+from ag_ui.encoder import EventEncoder
+
+# For SSE/HTTP streaming
+encoder = EventEncoder()
+sse_data = encoder.encode(event)
+# Output: "data: {...json...}\n\n"
+```
+
+### WebSocket Encoding  
+```python
+from ag_ui.encoder import WebSocketEventEncoder
+
+# For WebSocket connections
+encoder = WebSocketEventEncoder()
+json_data = encoder.encode(event)        # JSON string
+binary_data = encoder.encode_binary(event)  # UTF-8 bytes
+can_compress = encoder.can_compress()     # True
+```
+
+### Benefits
+- **Single Responsibility**: Each encoder has one clear purpose
+- **Better Performance**: Protocol-specific optimizations
+- **Extensibility**: Easy to add new transport protocols  
+- **Maintainability**: Changes isolated to specific protocols
+- **Clean API**: No confusing protocol parameters
+
+## Project Structure
+
+The WebSocket demo has been refactored for better maintainability:
+
+```
+websocket_demo.py           # Main demo script (refactored)
+generate_ssl_certs.py       # SSL certificate generation
+utils/
+├── __init__.py            # Common utilities
+├── sample_data.py         # Sample data creation functions
+├── ssl_utils.py           # SSL/security utilities
+├── state_utils.py         # State management and JSON Patch operations
+├── server_handlers.py     # WebSocket server handlers
+└── client_handlers.py     # WebSocket client handlers
+```
+
+### Benefits of Refactored Structure
+- **Modular Design**: Utilities organized by function
+- **Maintainability**: Easier to modify specific components
+- **Reusability**: Utilities can be imported by other projects
+- **Clarity**: Main demo file focuses on orchestration
+- **Testing**: Individual modules can be tested separately
+
 ### Available Demos
 
 1. **Basic Demo** (`run_demo`) - Simple demonstration with core events
@@ -18,11 +73,10 @@ The `websocket_demo.py` script demonstrates secure WebSocket communication using
 - **Graceful Fallback**: Falls back to insecure WebSocket for local development when certificates are unavailable
 - **Development Mode**: Includes `--insecure` flag for testing without SSL
 
-### Quick Start
+## Quick Start
 
 1. **Generate SSL Certificates** (for secure connections):
    ```bash
-   cd /workspaces/ag-ui/python-sdk/examples/websockets
    python generate_ssl_certs.py
    ```
 
@@ -35,10 +89,13 @@ The `websocket_demo.py` script demonstrates secure WebSocket communication using
    python websocket_demo.py comprehensive_demo --insecure
    ```
 
-3. **Run the Basic Demo**:
+3. **Run Individual Components**:
    ```bash
-   # Basic demo with core events only
-   python websocket_demo.py run_demo
+   # Start server only
+   python websocket_demo.py comprehensive_server
+   
+   # Connect client only (in another terminal)
+   python websocket_demo.py enhanced_client
    ```
 
 ### Available Commands
